@@ -15,6 +15,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -114,6 +115,30 @@ public class EsController {
 
             return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @PostMapping("/test")
+    public ResponseEntity test() throws Exception{
+
+        MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("title", "Elasticsearch入门");
+
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery().must(matchPhraseQueryBuilder);
+
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(boolQueryBuilder);
+        System.out.println(sourceBuilder.toString());
+
+        SearchResponse searchResponse = this.client.prepareSearch("book").setTypes("novel")
+                .setQuery(boolQueryBuilder).setExplain(true).execute().actionGet();
+
+        SearchHits hits = searchResponse.getHits();
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SearchHit hit : hits) {
+            result.add(hit.getSource());
+        }
+
+        return  new ResponseEntity(result, HttpStatus.OK);
     }
 
     @PostMapping("/query/book/novel")
