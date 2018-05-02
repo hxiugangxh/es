@@ -12,22 +12,28 @@ import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+
+import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 
 @RestController
 public class EsController {
@@ -35,11 +41,22 @@ public class EsController {
     @Autowired
     private TransportClient client;
 
+    @Autowired
+    private ElasticsearchTemplate elasticsearchTemplate;
+
     @GetMapping("/get/book/novel")
     public ResponseEntity get(@RequestParam(value = "id", defaultValue = "") String id) {
         if (id.isEmpty()) {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
+
+        SearchQuery searchQuery = new NativeSearchQueryBuilder().withQuery(queryStringQuery("大发")).build();
+        List<Novel> articles = elasticsearchTemplate.queryForList(searchQuery, Novel.class);
+        for (Novel article : articles) {
+            System.out.println(article);
+        }
+
+        System.out.println("elasticsearchTemplate = " + elasticsearchTemplate);
 
         GetResponse result = this.client.prepareGet("book", "novel", id).get();
 
@@ -118,7 +135,7 @@ public class EsController {
     }
 
     @PostMapping("/test")
-    public ResponseEntity test() throws Exception{
+    public ResponseEntity test() throws Exception {
 
         MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("title", "Elasticsearch入门");
 
@@ -138,14 +155,14 @@ public class EsController {
             result.add(hit.getSource());
         }
 
-        return  new ResponseEntity(result, HttpStatus.OK);
+        return new ResponseEntity(result, HttpStatus.OK);
     }
 
     @PostMapping("/query/book/novel")
     public ResponseEntity query(
             @RequestParam(value = "author", required = false) String author,
             @RequestParam(value = "title", required = false) String title,
-            @RequestParam(value = "gtWordCount",defaultValue = "10") Integer gtWordCount
+            @RequestParam(value = "gtWordCount", defaultValue = "10") Integer gtWordCount
     ) {
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
 

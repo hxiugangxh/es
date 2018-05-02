@@ -1,11 +1,13 @@
 package com.example.es;
 
+import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 
 import java.net.InetAddress;
 
@@ -28,6 +30,11 @@ public class EsConfig {
         client.addTransportAddress(node);
 
         return client;
+    }
+
+    @Bean
+    public ElasticsearchTemplate elasticsearchTemplate(Client client) {
+        return new ElasticsearchTemplate(client);
     }
 
 }
